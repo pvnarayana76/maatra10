@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Akshara Alchemist - Ultimate Pro</title>
+    <title>Akshara Alchemist - Stable Pro</title>
     <style>
         :root { --bg: #0f172a; --blue: #38bdf8; --gold: #fbbf24; --white: #f1f5f9; --green: #4ade80; --red: #ef4444; }
         * { box-sizing: border-box; touch-action: none; -webkit-user-select: none; } 
@@ -63,6 +63,9 @@
         #tray-area { height: 15%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .word-tray { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         .slot { width: 55px; height: 55px; border: 2px dashed #475569; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.4rem; background: rgba(0,0,0,0.2); }
+        
+        .hint-bar { height: 6%; display: flex; justify-content: center; align-items: center; font-size: 0.85rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); margin-top: 5px; border-radius: 10px;}
+        .hint-bar span { color: var(--gold); font-weight: bold; margin: 0 5px; }
     </style>
 </head>
 <body>
@@ -106,6 +109,10 @@
     </div>
 
     <div id="tray-area" class="hidden"><div class="word-tray" id="word-tray"></div></div>
+
+    <div class="hint-bar">
+        💡 क्+ष=<span>क्ष</span> | त्+र=<span>त्र</span> | ज्+ञ=<span>ज्ञ</span> | श्+र=<span>श्र</span>
+    </div>
 </div>
 
 <script>
@@ -113,7 +120,7 @@
     let timer = 0, clockInterval = null, idx = 0;
     let currentList = []; 
     let currentScore = 0, pointsPerWord = 1, maxPoints = 0;
-    let solvedIndices = new Set(); // Prevents score farming if they go Back
+    let solvedIndices = []; 
 
     const BINDUS = ['ं', 'ँ', 'ः'];
 
@@ -125,16 +132,18 @@
         o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+0.3);
     }
 
+    // Bulletproof Shuffle (Removed destructuring that causes mobile bugs)
     function shuffle(array) {
-        let arr = [...array];
+        let arr = array.slice(0);
         for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+            let j = Math.floor(Math.random() * (i + 1));
+            let temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
         }
         return arr;
     }
 
-    // LEVEL 1: 104 SYLLABLES
     const l1Data = [
         {t:"का",v:["क","ख","ग"],m:["ा","ी"]}, {t:"कि",v:["क","च","ट"],m:["ि","ी"]}, {t:"की",v:["क","ल","म"],m:["ा","ी"]}, {t:"कु",v:["क","प","ब"],m:["ु","ू"]}, {t:"कू",v:["क","न","म"],m:["ू","ु"]},
         {t:"के",v:["क","ख","ग"],m:["े","ै"]}, {t:"कै",v:["क","च","ज"],m:["ै","े"]}, {t:"को",v:["क","ख","ग"],m:["ो","ौ"]}, {t:"कौ",v:["क","प","फ"],m:["ौ","ो"]}, {t:"खि",v:["ख","ग","घ"],m:["ि","ी"]},
@@ -144,7 +153,7 @@
         {t:"चे",v:["च","छ","ज"],m:["े","ै"]}, {t:"चो",v:["च","ल","छ"],m:["ो","ौ"]}, {t:"छी",v:["छ","च","ज"],m:["ी","ि"]}, {t:"जा",v:["ज","झ","च"],m:["ा","े"]}, {t:"जि",v:["ज","झ","च"],m:["ि","ी"]},
         {t:"जी",v:["ज","झ","च"],m:["ी","ि"]}, {t:"जु",v:["ज","झ","च"],m:["ु","ू"]}, {t:"जे",v:["ज","झ","च"],m:["े","ै"]}, {t:"जो",v:["ज","झ","छ"],m:["ो","ौ"]}, {t:"झू",v:["झ","ज","च"],m:["ू","ु"]},
         {t:"टा",v:["ट","ड","ठ"],m:["ा","े"]}, {t:"टि",v:["ट","ठ","ड"],m:["ि","ी"]}, {t:"टी",v:["ट","ठ","ड"],m:["ी","ि"]}, {t:"टु",v:["ट","ठ","ड"],m:["ु","ू"]}, {t:"टो",v:["ट","ठ","ड"],m:["ो","ौ"]},
-        {t:"ता",v:["t","थ","द"],m:["ा","े"]}, {t:"ति",v:["त","थ","द"],m:["ि","ी"]}, {t:"ती",v:["त","थ","द"],m:["ी","ि"]}, {t:"तु",v:["त","थ","द"],m:["ु","ू"]}, {t:"तू",v:["त","थ","द"],m:["ू","ु"]},
+        {t:"ता",v:["त","थ","द"],m:["ा","े"]}, {t:"ति",v:["त","थ","द"],m:["ि","ी"]}, {t:"ती",v:["त","थ","द"],m:["ी","ि"]}, {t:"तु",v:["त","थ","द"],m:["ु","ू"]}, {t:"तू",v:["त","थ","द"],m:["ू","ु"]},
         {t:"ते",v:["त","थ","द"],m:["े","ै"]}, {t:"तो",v:["त","थ","द"],m:["ो","ौ"]}, {t:"था",v:["थ","त","द"],m:["ा","े"]}, {t:"थी",v:["थ","त","द"],m:["ी","ि"]}, {t:"दा",v:["द","ध","न"],m:["ा","े"]},
         {t:"दि",v:["द","ध","न"],m:["ि","ी"]}, {t:"दी",v:["द","ध","न"],m:["ी","ि"]}, {t:"दु",v:["द","ध","न"],m:["ु","ू"]}, {t:"दू",v:["द","ब","ढ"],m:["ु","ू"]}, {t:"दे",v:["द","म","र"],m:["े","ै"]},
         {t:"दो",v:["द","ध","न"],m:["ो","ौ"]}, {t:"धु",v:["ध","थ","द"],m:["ु","ू"]}, {t:"ना",v:["न","म","ल"],m:["ा","े"]}, {t:"नि",v:["न","म","ल"],m:["ि","ी"]}, {t:"नी",v:["न","म","ल"],m:["ी","ि"]},
@@ -160,7 +169,6 @@
         {t:"भैं",v:["भ","ब","म"],m:["ै","ं","े"]}, {t:"पाँ",v:["प","फ","ब"],m:["ा","ँ","े"]}, {t:"कुं",v:["क","ख","ग"],m:["ु","ं","ू"]}, {t:"गें",v:["ग","घ","म"],m:["े","ं","ा"]}
     ];
 
-    // LEVEL 2: 139 WORDS
     const l2Data = [
         {w:"नमन", p:["न","म","न"], v:["न","म","र"], m:["ा","ि"]}, {w:"आरा", p:["आ","रा"], v:["आ","र","म"], m:["ा","े"]},
         {w:"अनार", p:["अ","ना","र"], v:["अ","न","र","म"], m:["ा","े"]}, {w:"आम", p:["आ","म"], v:["आ","म","न"], m:["ा","ी"]},
@@ -218,10 +226,10 @@
         {w:"कुम्हड़ा", p:["कु","म्ह","ड़ा"], v:["क","म्ह","ड़","ल"], m:["ु","ा"]}, {w:"गुलाब", p:["गु","ला","ब"], v:["ग","ल","ब","च"], m:["ु","ा"]},
         {w:"केवड़ा", p:["के","व","ड़ा"], v:["क","व","ड़","ल"], m:["े","ा"]}, {w:"चमेली", p:["च","मे","ली"], v:["च","म","ल","न"], m:["े","ी"]},
         {w:"जूही", p:["जू","ही"], v:["ज","ह","ल"], m:["ू","ी"]}, {w:"गुड़हल", p:["गु","ड़","ह","ल"], v:["ग","ड़","ह","ल"], m:["ु","ू"]},
-        {w:"पारिजात", p:["पा","रि","जा","त"], v:["प","र","ज","त"], m:["ा","ि"]},
-        {w:"प्याज", p:["प्या","ज"], v:["प्य","ज","ल"], m:["ा","े"]}, {w:"मिर्च", p:["मि","र्च"], v:["म","र्च","ल"], m:["ि","ी"]},
-        
-        // COMPLEX BINDU WORDS (These will be pushed to the final rounds)
+        {w:"पारिजात", p:["पा","रि","जा","त"], v:["प","र","ज","त"], m:["ा","ि"]}, {w:"प्याज", p:["प्या","ज"], v:["प्य","ज","ल"], m:["ा","े"]}, 
+        {w:"मिर्च", p:["मि","र्च"], v:["म","र्च","ल"], m:["ि","ी"]},
+
+        // BINDU WORDS (The Boss Fights!)
         {w:"अंगूठी", p:["अं","गू","ठी"], v:["अ","ग","ठ","ल"], m:["ं","ू","ी","ा"]}, {w:"चूड़ियाँ", p:["चू","ड़ि","याँ"], v:["च","ड़","य","क"], m:["ू","ि","ा","ँ"]},
         {w:"पाँच", p:["पाँ","च"], v:["प","च","ल"], m:["ा","ँ","े"]}, {w:"बैंगनी", p:["बैं","ग","नी"], v:["ब","ग","न","म"], m:["ै","ं","ी","ा"]},
         {w:"भैंस", p:["भैं","स"], v:["भ","स","ल"], m:["ै","ं","े"]}, {w:"कुंदरू", p:["कुं","द","रू"], v:["क","द","र","ल"], m:["ु","ं","ू","ा"]},
@@ -230,80 +238,121 @@
         {w:"चंपा", p:["चं","पा"], v:["च","प","ल"], m:["ं","ा","े"]}, {w:"गेंदा", p:["गें","दा"], v:["ग","द","ल"], m:["े","ं","ा"]}
     ];
 
-    // Helper function to check if a word requires a Bindu/Chandrabindu
-    const isComplex = (item) => item.m && item.m.some(matra => BINDUS.includes(matra));
-
     function start() {
         idx = 0; currentScore = 0; 
-        solvedIndices.clear(); // Reset solved tracker
+        solvedIndices = []; 
         
         const lvl = document.getElementById('lvl').value;
         const roundSetting = document.getElementById('round-count').value;
         pointsPerWord = (lvl == "1") ? 1 : 2;
         let activeData = (lvl == "1") ? l1Data : l2Data;
         
-        // SMART SORTING: Separate normal words from Bindu words
-        let regularWords = shuffle(activeData.filter(d => !isComplex(d)));
-        let binduWords = shuffle(activeData.filter(d => isComplex(d)));
+        let regularWords = [];
+        let binduWords = [];
         
-        if(roundSetting === "all") {
-            // Append all Bindu words to the very end of the session
-            currentList = [...regularWords, ...binduWords];
+        // Bulletproof loop to separate regular words from Bindu words
+        for (let i = 0; i < activeData.length; i++) {
+            let item = activeData[i];
+            let hasBindu = false;
+            if (item && item.m) {
+                for (let j = 0; j < item.m.length; j++) {
+                    if (BINDUS.indexOf(item.m[j]) !== -1) {
+                        hasBindu = true;
+                        break;
+                    }
+                }
+            }
+            if (hasBindu) {
+                binduWords.push(item);
+            } else {
+                regularWords.push(item);
+            }
+        }
+        
+        regularWords = shuffle(regularWords);
+        binduWords = shuffle(binduWords);
+        
+        if (roundSetting === "all") {
+            currentList = regularWords.concat(binduWords);
         } else {
             let limit = parseInt(roundSetting);
-            // Dedicate the last 20% of ANY session to the "Boss Fight" Bindu words
+            if (isNaN(limit)) limit = 10;
+            
+            // Calculate how many Boss words to include (20% of limit)
             let complexLimit = Math.min(Math.ceil(limit * 0.2), binduWords.length);
             let regularLimit = limit - complexLimit;
             
-            currentList = [...regularWords.slice(0, regularLimit), ...binduWords.slice(0, complexLimit)];
+            let part1 = regularWords.slice(0, regularLimit);
+            let part2 = binduWords.slice(0, complexLimit);
+            currentList = part1.concat(part2);
         }
         
+        // Safety Fallback just in case
+        if (!currentList || currentList.length === 0) currentList = activeData;
+        
         maxPoints = currentList.length * pointsPerWord;
+        
         document.getElementById('pts-scored').innerText = currentScore;
         document.getElementById('pts-total').innerText = maxPoints;
 
-        if(clockInterval) clearInterval(clockInterval);
+        if (clockInterval) clearInterval(clockInterval);
         timer = 0; 
         clockInterval = setInterval(() => {
-            timer++; let m = Math.floor(timer/60).toString().padStart(2,'0');
-            let s = (timer%60).toString().padStart(2,'0');
+            timer++; 
+            let m = Math.floor(timer / 60).toString().padStart(2, '0');
+            let s = (timer % 60).toString().padStart(2, '0');
             document.getElementById('clock').innerText = `${m}:${s}`;
         }, 1000);
         load();
     }
 
     function load() {
+        if (!currentList || currentList.length === 0) return;
         const lvl = document.getElementById('lvl').value;
         const d = currentList[idx]; 
-        
+        if (!d) return;
+
         document.getElementById('target-text').innerText = (lvl == "1") ? d.t : d.w;
         
-        // Hide next/skip/back buttons appropriately
         document.getElementById('next-btn').classList.add('hidden');
         document.getElementById('skip-btn').classList.remove('hidden');
-        document.getElementById('back-btn').classList.toggle('hidden', idx === 0);
+        if (idx === 0) {
+            document.getElementById('back-btn').classList.add('hidden');
+        } else {
+            document.getElementById('back-btn').classList.remove('hidden');
+        }
         
         document.getElementById('msg').innerText = "Drag a Vyanjan";
         bridge.v = ""; bridge.m = ""; bridge.b = "";
         document.getElementById('forge-circle').innerText = "?";
         
-        const shuffledV = shuffle([...d.v]);
-        const shuffledM = shuffle([...d.m]);
+        let shuffledV = shuffle(d.v.slice(0));
+        let shuffledM = shuffle(d.m.slice(0));
 
         document.getElementById('v-bank').innerHTML = "<h3>VYANJAN</h3>";
-        shuffledV.forEach(v => document.getElementById('v-bank').innerHTML += `<div class="tile" draggable="true" ondragstart="hDS(event, '${v}','v')">${v}</div>`);
+        for (let i = 0; i < shuffledV.length; i++) {
+            let v = shuffledV[i];
+            document.getElementById('v-bank').innerHTML += `<div class="tile" draggable="true" ondragstart="hDS(event, '${v}','v')">${v}</div>`;
+        }
         
         document.getElementById('m-bank').innerHTML = "<h3>MATRA</h3>";
-        shuffledM.forEach(m => {
-            let type = BINDUS.includes(m) ? 'b' : 'm'; 
+        for (let i = 0; i < shuffledM.length; i++) {
+            let m = shuffledM[i];
+            let type = (BINDUS.indexOf(m) !== -1) ? 'b' : 'm'; 
             document.getElementById('m-bank').innerHTML += `<div class="tile m" draggable="true" ondragstart="hDS(event, '${m}','${type}')">${m}</div>`;
-        });
+        }
         
         const trayA = document.getElementById('tray-area');
-        if(lvl == "2") {
-            trayA.classList.remove('hidden'); document.getElementById('word-tray').innerHTML = "";
-            d.p.forEach(part => document.getElementById('word-tray').innerHTML += `<div class="slot" ondragover="allowDrop(event)" ondrop="hTD(event, '${part}')">?</div>`);
-        } else trayA.classList.add('hidden');
+        if (lvl == "2") {
+            trayA.classList.remove('hidden'); 
+            document.getElementById('word-tray').innerHTML = "";
+            for (let i = 0; i < d.p.length; i++) {
+                let part = d.p[i];
+                document.getElementById('word-tray').innerHTML += `<div class="slot" ondragover="allowDrop(event)" ondrop="hTD(event, '${part}')">?</div>`;
+            }
+        } else {
+            trayA.classList.add('hidden');
+        }
     }
 
     function allowDrop(e) { e.preventDefault(); }
@@ -353,8 +402,12 @@
             document.getElementById('forge-circle').innerText = "?";
             document.getElementById('msg').innerText = "Drag a Vyanjan";
             
-            const slots = [...document.querySelectorAll('.slot')];
-            if (slots.every(s => s.innerText !== "?")) victory();
+            const slots = document.querySelectorAll('.slot');
+            let allFilled = true;
+            for (let i = 0; i < slots.length; i++) {
+                if (slots[i].innerText === "?") allFilled = false;
+            }
+            if (allFilled) victory();
         } else { 
             triggerError(e.target, true); document.getElementById('msg').innerText = "Wrong part!"; 
         }
@@ -375,10 +428,9 @@
     function victory() { 
         playSound('success'); 
         
-        // SECURE SCORE SYSTEM: Only add points if this index hasn't been solved yet
-        if (!solvedIndices.has(idx)) {
+        if (solvedIndices.indexOf(idx) === -1) {
             currentScore += pointsPerWord; 
-            solvedIndices.add(idx);
+            solvedIndices.push(idx);
             document.getElementById('pts-scored').innerText = currentScore;
         }
 
@@ -403,6 +455,7 @@
         else load(); 
     }
     
+    // START THE GAME!
     start();
 </script>
 </body>
